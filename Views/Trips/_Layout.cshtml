@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Django Travel</title>
+
+    <!-- раннее применение темы -->
+    <script>
+        (function () {
+            const KEY = 'theme';
+            const saved = localStorage.getItem(KEY);
+            const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+            const dark = saved ? (saved === 'dark') : prefersDark;
+            const html = document.documentElement;
+            html.classList.toggle('dark', dark);
+            window.__theme = dark ? 'dark' : 'light';
+        })();
+    </script>
+
+    <!-- Tailwind darkMode:'class' -->
+    <script>
+        window.tailwind = window.tailwind || {};
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#3b82f6' } } }
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        article { line-height:1.7; }
+        article h1, article h2, article h3 { font-weight:700; margin-top:1.2em; margin-bottom:.5em; }
+        article img { border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.08); margin:1rem 0; max-width:100%; height:auto; }
+        article p { margin:.6em 0; }
+        article ul, article ol { padding-left:1.2rem; }
+        article blockquote { border-left:4px solid #e5e7eb; padding-left:1rem; color:#4b5563; margin:1rem 0; }
+        .dark article blockquote { border-left-color:#374151; color:#9ca3af; }
+    </style>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-500">
+<!-- Header -->
+<header class="flex justify-between items-center px-6 py-4 shadow-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="text-2xl font-bold cursor-pointer" onclick="window.location='/Trips'">
+        ✈️ Django Travel
+    </div>
+
+    <!-- Mobile menu button -->
+    <button id="menuButton" class="md:hidden p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
+        <svg id="menuIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+    </button>
+
+    <!-- Desktop nav -->
+    <nav id="navMenu" class="hidden md:flex space-x-6 items-center">
+        <a href="/Trips" class="hover:text-blue-500 transition">Home</a>
+        <a href="/Explore" class="hover:text-blue-500 transition">Countries</a>
+    </nav>
+</header>
+
+<!-- Mobile nav -->
+<nav id="mobileMenu" class="hidden flex-col space-y-3 bg-white dark:bg-gray-800 px-6 py-4 md:hidden shadow-lg">
+    <a href="/Trips" class="hover:text-blue-500">Home</a>
+    <a href="/Explore" class="hover:text-blue-500">Countries</a>
+</nav>
+
+<main class="p-4 md:p-8">
+    @RenderBody()
+</main>
+
+<footer class="text-center text-sm py-4 text-gray-500 dark:text-gray-400">
+    © @DateTime.Now.Year — Django Travel by Zhangir 🌍
+</footer>
+
+<!-- меню + переключатель темы -->
+<script>
+    (function(){
+        const btn = document.getElementById('menuButton');
+        const menu = document.getElementById('mobileMenu');
+        const icon = document.getElementById('menuIcon');
+        if (btn) btn.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+            icon.classList.toggle('rotate-90');
+        });
+    })();
+
+    (function () {
+        const KEY = 'theme';
+        const html = document.documentElement;
+
+        function apply(mode) {
+            html.classList.toggle('dark', mode === 'dark');
+            document.querySelectorAll('.theme-icon').forEach(el => el.textContent = (mode === 'dark' ? '☀️' : '🌙'));
+            window.__theme = mode;
+            window.dispatchEvent(new CustomEvent('app:theme-change', { detail: { theme: mode }}));
+        }
+
+        apply(window.__theme || (html.classList.contains('dark') ? 'dark':'light'));
+
+        function toggle() {
+            const next = html.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem(KEY, next);
+            apply(next);
+        }
+
+        document.getElementById('themeToggle')?.addEventListener('click', toggle);
+        document.getElementById('themeToggleMobile')?.addEventListener('click', toggle);
+    })();
+</script>
+
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

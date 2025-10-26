@@ -1,0 +1,53 @@
+﻿@model IEnumerable<Jango_Travel.Models.Trip>
+@{
+    ViewData["Title"] = "Travel Blog";
+}
+<script src="https://cdn.tailwindcss.com"></script>
+
+<h1 class="text-4xl font-bold mb-6">Travel Blog</h1>
+
+<div id="map" style="height: 500px; border-radius: 12px;"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        const trips = @Html.Raw(Json.Serialize(Model.Select(t => new {
+                          id = t.Id,
+                          title = t.Title,
+                          city = t.City?.Name,
+                          lat = t.City?.Latitude,
+                          lng = t.City?.Longitude
+                      })));
+
+        trips.forEach(t => {
+            if (t.lat && t.lng) {
+                const marker = L.marker([t.lat, t.lng]).addTo(map);
+                marker.bindPopup(`<b>${t.title}</b><br>${t.city}`);
+                marker.on('click', () => window.location.href = `/Trips/Details/${t.id}`);
+            }
+        });
+    });
+</script>
+
+<table class="table-auto w-full mt-6 text-lg">
+    <thead>
+    <tr class="text-gray-600 border-b">
+        <th>Title</th><th>City</th><th>Dates</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var t in Model)
+    {
+        <tr class="hover:bg-gray-100 cursor-pointer" onclick="window.location='/Trips/Details/@t.Id'">
+            <td>@t.Title</td>
+            <td>@t.City?.Name</td>
+            <td>@t.StartDate.ToString("MMM d, yyyy") – @t.EndDate.ToString("MMM d, yyyy")</td>
+        </tr>
+    }
+    </tbody>
+</table>

@@ -1,0 +1,98 @@
+@model IEnumerable<Jango_Travel.Models.Trip>
+@{
+ViewData["Title"] = "Travel Blog";
+Layout = "~/Views/Trips/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- Верхняя панель статистики -->
+<div class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 py-2 px-4 flex flex-wrap items-center justify-between text-sm">
+    <div class="flex flex-wrap gap-4 text-gray-700 dark:text-gray-300">
+        <p>🌍 <strong>@ViewData["VisitedCountries"]</strong> countries visited</p>
+        <p>📈 <strong>@Math.Round((double)ViewData["PercentVisited"], 1)%</strong> of world</p>
+        <p>🏙️ Visited cities: <strong>@ViewData["VisitedCities"]</strong></p>
+        <p>🚀 <strong>@ViewData["TotalDistance"] km</strong> traveled</p>
+    </div>
+</div>
+
+<!-- Основной контент -->
+<div class="flex flex-col md:flex-row h-[calc(100vh-80px)]">
+    <!-- Левая часть: список -->
+    <div class="w-full md:w-1/3 lg:w-1/4 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-y-auto p-4">
+        <h1 class="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">🌍 My Travels</h1>
+
+        <div class="space-y-3">
+            @foreach (var t in Model)
+            {
+            <div onclick="window.location='/Trips/Details/@t.Id'"
+                 class="bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all p-3 rounded-lg cursor-pointer border border-gray-100 dark:border-gray-700">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">@t.Title</h2>
+                        <p class="text-gray-500 dark:text-gray-400">@t.City?.Name</p>
+                        <p class="text-gray-400 dark:text-gray-500 text-xs">
+                            @t.StartDate.ToString("dd MMM, yyyy", System.Globalization.CultureInfo.InvariantCulture)
+                            –
+                            @t.EndDate.ToString("dd MMM, yyyy", System.Globalization.CultureInfo.InvariantCulture)
+                        </p>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(t.DescriptionHtml))
+                    {
+                    <span class="ml-3 self-start inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full
+                                         bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                📝 Article
+                            </span>
+                    }
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+
+    <!-- Правая часть: карта -->
+    <div class="flex-1 relative">
+        <div id="map" class="w-full h-[60vh] md:h-full"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        // тайлы по теме
+        const theme = window.__theme || (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        const tileUrl = theme === 'white'
+            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+        const map = L.map('map', { zoomControl: true }).setView([20, 0], 2);
+        const tiles = L.tileLayer(tileUrl, { attribution: '&copy; OpenStreetMap & CartoDB' }).addTo(map);
+
+        window.addEventListener('app:theme-change', (e) => {
+            tiles.setUrl(e.detail.theme === 'white'
+                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+        });
+
+        const trips = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.Select(t => new {
+        id = t.Id,
+        title = t.Title,
+        city = t.City?.Name,
+        lat = t.City?.Latitude,
+        lng = t.City?.Longitude
+        })
+        ));
+
+        trips.forEach(t => {
+            if (t.lat && t.lng) {
+                const marker = L.marker([t.lat, t.lng]).addTo(map);
+                marker.bindPopup(`<b>${t.title}</b><br>${t.city ?? ''}`);
+                marker.on('click', () => window.location.href = `/Trips/Details/${t.id}`);
+            }
+        });
+    });
+</script>
+}

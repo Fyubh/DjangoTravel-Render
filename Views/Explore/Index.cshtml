@@ -1,0 +1,24 @@
+@model IEnumerable<Jango_Travel.Models.ViewModels.VisitedCountryVm>
+@{
+    ViewData["Title"] = "Explore Countries";
+}
+
+<h1 class="text-2xl font-bold mb-4">🌍 Countries Zhangir have visited</h1>
+
+@if (!Model.Any())
+{
+    <p class="text-gray-500">No countries yet.</p>
+}
+else
+{
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach (var c in Model)
+        {
+            <a asp-controller="Explore" asp-action="Country" asp-route-id="@c.CountryId"
+               class="block bg-white dark:bg-gray-800 rounded-xl shadow p-4 hover:shadow-md transition">
+                <div class="text-lg font-semibold">@c.CountryName</div>
+                <div class="text-gray-500 text-sm">@c.CitiesCount cities • @c.TripsCount trips</div>
+            </a>
+        }
+    </div>
+}

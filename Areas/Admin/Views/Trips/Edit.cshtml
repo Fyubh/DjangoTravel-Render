@@ -1,0 +1,106 @@
+@model Jango_Travel.Models.ViewModels.TripFormVm
+<h1 class="text-2xl font-bold mb-4">@((Model.Id == null) ? "Create Trip" : "Edit Trip")</h1>
+
+<form asp-action="@((Model.Id == null) ? "Create" : "Edit")"
+      asp-route-id="@Model.Id"
+      method="post" enctype="multipart/form-data" class="space-y-4">
+
+  <div>
+    <label class="block text-sm">Title</label>
+    <input asp-for="Title" class="border px-3 py-2 rounded w-full" />
+    <span asp-validation-for="Title" class="text-red-500 text-sm"></span>
+  </div>
+
+  <div>
+    <label class="block text-sm">Article (HTML)</label>
+    <textarea asp-for="DescriptionHtml" id="editor" rows="15" class="border px-3 py-2 rounded w-full"></textarea>
+    <span asp-validation-for="DescriptionHtml" class="text-red-500 text-sm"></span>
+  </div>
+
+  @section Scripts {
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>
+    tinymce.init({
+      selector: '#editor',
+      menubar: false,
+      height: 500,
+      plugins: 'link image lists code',
+      toolbar: 'undo redo | styles | bold italic underline | bullist numlist | link image | h2 h3 blockquote | code',
+      content_style: 'body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height:1.6; } img { max-width:100%; height:auto; }',
+      convert_urls: false
+    });
+  </script>
+  }
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm">Start</label>
+      <input asp-for="StartDate" type="date" class="border px-3 py-2 rounded w-full" />
+    </div>
+    <div>
+      <label class="block text-sm">End</label>
+      <input asp-for="EndDate" type="date" class="border px-3 py-2 rounded w-full" />
+    </div>
+  </div>
+
+  <hr>
+
+  <h2 class="font-semibold">City</h2>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm">Existing city</label>
+      <select asp-for="CityId" class="border px-3 py-2 rounded w-full">
+        <option value="">— select —</option>
+        @foreach (var c in (IEnumerable<Jango_Travel.Models.City>)ViewBag.Cities)
+        {
+          <option value="@c.Id">@c.Name (@c.Country?.Name)</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm">Or create new</label>
+      <input asp-for="NewCityName" class="border px-3 py-2 rounded w-full" placeholder="City name" />
+      <input asp-for="NewCountryName" class="border px-3 py-2 rounded w-full mt-2" placeholder="Country name" />
+      <div class="grid grid-cols-2 gap-2 mt-2">
+        <input asp-for="NewCityLat" class="border px-3 py-2 rounded" placeholder="Lat" />
+        <input asp-for="NewCityLon" class="border px-3 py-2 rounded" placeholder="Lon" />
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div>
+    <label class="block text-sm">Photos (multiple)</label>
+    <input asp-for="Files" type="file" multiple class="border px-3 py-2 rounded w-full" />
+  </div>
+
+  <button class="px-4 py-2 bg-blue-600 text-white rounded" type="submit">Save</button>
+</form>
+@if (Model.Id != null)
+{
+  <h2 class="mt-8 font-semibold">Existing photos</h2>
+  var tripId = Model.Id.Value;
+  // var trip = (await Html.RenderComponentAsync<dynamic>("")).GetType(); // (игнорируй, просто разделитель визуально)
+}
+@{
+  // Загрузим фото через ViewData (передай их из контроллера, если хочешь),
+  // но проще — сделать маленький вспомогательный endpoint.
+}
+ViewBag.Photos = trip.Photos.OrderByDescending(p => p.Id).ToList();
+@if (ViewBag.Photos != null && ((IEnumerable<Jango_Travel.Models.Photo>)ViewBag.Photos).Any())
+{
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+    @foreach (var p in (IEnumerable<Jango_Travel.Models.Photo>)ViewBag.Photos)
+    {
+      <div class="relative group">
+        <img src="@p.Url" class="rounded shadow w-full h-40 object-cover">
+        <form method="post" asp-action="DeletePhoto" asp-route-id="@p.Id" asp-route-tripId="@Model.Id"
+              class="absolute top-2 right-2 hidden group-hover:block"
+              onsubmit="return confirm('Delete photo?');">
+          <button type="submit" class="bg-red-600 text-white text-xs px-2 py-1 rounded">×</button>
+        </form>
+      </div>
+    }
+  </div>
+}

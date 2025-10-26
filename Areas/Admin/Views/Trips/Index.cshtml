@@ -1,0 +1,29 @@
+@model IEnumerable<Jango_Travel.Models.Trip>
+<h1 class="text-2xl font-bold mb-4">Trips</h1>
+
+<form class="mb-3" method="get">
+    <input name="q" class="border px-3 py-2 rounded" placeholder="Search..." value="@Context.Request.Query["q"]" />
+    <a class="ml-2 px-3 py-2 bg-gray-200 rounded" href="/Admin/Trips/Create">+ Add Trip</a>
+</form>
+
+<table class="w-full text-sm">
+    <thead><tr class="text-left border-b">
+        <th>Title</th><th>City</th><th>Dates</th><th></th>
+    </tr></thead>
+    <tbody>
+    @foreach (var t in Model)
+    {
+        <tr class="border-b hover:bg-gray-50">
+            <td>@t.Title</td>
+            <td>@t.City?.Name</td>
+            <td>@t.StartDate:dd MMM yyyy – @t.EndDate:dd MMM yyyy</td>
+            <td class="text-right">
+                <a class="text-blue-600" href="/Admin/Trips/Edit/@t.Id">Edit</a>
+                <form method="post" asp-action="Delete" asp-route-id="@t.Id" class="inline ml-2" onsubmit="return confirm('Delete?');">
+                    <button class="text-red-600" type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

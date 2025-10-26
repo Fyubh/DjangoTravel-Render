@@ -1,0 +1,47 @@
+@{
+    ViewData["Title"] = "All Photos";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var items = ViewBag.Items as List<(int tripId, string file, string url)> ?? new();
+}
+
+<h1 class="text-2xl font-bold mb-4">🖼️ All Photos</h1>
+<a asp-area="Admin" asp-controller="Media" asp-action="Index" class="btn btn-outline-secondary mb-3">Back to Upload</a>
+
+@if (!items.Any())
+{
+    <div class="text-muted">Пока нет загруженных файлов.</div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var it in items)
+        {
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card">
+                    <img src="@it.url" class="card-img-top" alt="">
+                    <div class="card-body">
+                        <div class="small">Trip #@it.tripId</div>
+                        <div class="small text-truncate" title="@it.url">@it.file</div>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-sm btn-outline-secondary" type="button"
+                                    onclick="copyToClipboard('@it.url')">Copy URL</button>
+                            <button class="btn btn-sm btn-outline-secondary" type="button"
+                                    onclick="copyToClipboard('<img src=&quot;@it.url&quot; alt=&quot;&quot;>')">Copy &lt;img&gt;</button>
+                        </div>
+                        <a asp-area="" asp-controller="Trips" asp-action="Details" asp-route-id="@it.tripId" class="btn btn-sm btn-outline-primary mt-2">Open Trip</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text)
+    .then(()=> alert('Copied!'))
+    .catch(()=> alert('Cannot copy'));
+}
+</script>
+}

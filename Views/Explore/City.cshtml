@@ -1,0 +1,53 @@
+@model IEnumerable<Jango_Travel.Models.ViewModels.TripListItemVm>
+@{
+    var cityName = (string)ViewData["CityName"]!;
+    var countryName = (string)ViewData["CountryName"]!;
+    var countryId = (int)ViewData["CountryId"]!;
+    ViewData["Title"] = $"Trips to {cityName}";
+}
+<div class="flex items-center gap-2 text-sm">
+    <a asp-controller="Explore" asp-action="Index" class="text-blue-500 hover:underline">Countries</a>
+    <span>/</span>
+    <a asp-controller="Explore" asp-action="Country" asp-route-id="@countryId" class="text-blue-500 hover:underline">@countryName</a>
+    <span>/</span>
+    <span class="text-gray-500">@cityName</span>
+</div>
+
+<h1 class="text-2xl font-bold mt-3 mb-4">🏙️ Trips to @cityName</h1>
+
+@if (!Model.Any())
+{
+    <p class="text-gray-500">No trips yet.</p>
+}
+else
+{
+    <div class="space-y-3">
+        @foreach (var t in Model)
+        {
+            <a asp-controller="Trips" asp-action="Details" asp-route-id="@t.TripId"
+               class="block bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition border border-gray-100 dark:border-gray-700 p-4">
+                <div class="flex items-start justify-between gap-3">  <!-- контейнер с двумя колонками -->
+                    <div>
+                        <div class="text-lg font-semibold">@t.Title</div>
+                        <div class="text-gray-500 text-sm">@t.CityName, @t.CountryName</div>
+                        <div class="text-gray-400 text-xs mt-1">
+                            @t.StartDate.ToString("dd MMM, yyyy", System.Globalization.CultureInfo.InvariantCulture)
+                            –
+                            @t.EndDate.ToString("dd MMM, yyyy", System.Globalization.CultureInfo.InvariantCulture)
+                        </div>
+                    </div>
+
+                    @* ← бейдж здесь: правая колонка в том же flex-контейнере *@
+                    @if (t.HasArticle)
+                    {
+                        <span class="ml-3 self-start inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full
+                             bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            📝 Article
+                        </span>
+                    }
+                </div>
+            </a>
+        }
+    </div>
+    
+}
