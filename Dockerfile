@@ -2,6 +2,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
+# у нас .csproj в корне репозитория
 COPY *.csproj ./
 RUN dotnet restore
 
@@ -14,4 +15,5 @@ WORKDIR /app
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 COPY --from=build /app/publish .
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "Jango_Travel.dll"]   # имя DLL = имя твоего .csproj
+# имя DLL = имя твоего .csproj
+ENTRYPOINT ["dotnet", "Jango_Travel.dll"]
