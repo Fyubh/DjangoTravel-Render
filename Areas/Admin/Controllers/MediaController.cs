@@ -16,13 +16,18 @@ public class MediaController : Controller
         _env = env;
     }
 
+    // **********************
+    //   Папка на диске Render
+    // **********************
+    private const string UploadRoot = "/data/uploads";
+
     private string GetTripFolder(int tripId)
-        => Path.Combine(_env.WebRootPath, "uploads", tripId.ToString(CultureInfo.InvariantCulture));
+        => Path.Combine(UploadRoot, tripId.ToString(CultureInfo.InvariantCulture));
 
     private static string WebPath(int tripId, string fileName)
         => $"/uploads/{tripId}/{fileName}";
 
-    // /Admin/Media?tripId=123 — страница загрузки/просмотра фото для конкретного Trip
+    // /Admin/Media?tripId=123
     public IActionResult Index(int? tripId)
     {
         ViewBag.TripId = tripId;
@@ -34,14 +39,25 @@ public class MediaController : Controller
         }
 
         var dir = GetTripFolder(tripId.Value);
-        if (!Directory.Exists(dir))
-        {
-            Directory.CreateDirectory(dir);
-        }
+        Directory.CreateDirectory(dir);
+
+        // Папка WWWROOT нужна для отдачи статических файлов
+        var staticDir = Path.Combine(_env.WebRootPath, "uploads", tripId.ToString());
+        Directory.CreateDirectory(staticDir);
 
         var files = Directory.EnumerateFiles(dir)
             .OrderByDescending(p => System.IO.File.GetCreationTimeUtc(p))
-            .Select(p => (file: Path.GetFileName(p), url: WebPath(tripId.Value, Path.GetFileName(p))))
+            .Select(p =>
+            {
+                var fileName = Path.GetFileName(p);
+
+                // Синхронизируем файл в wwwroot
+                var staticPath = Path.Combine(staticDir, fileName);
+                if (!System.IO.File.Exists(staticPath))
+                    System.IO.File.Copy(p, staticPath);
+
+                return (file: fileName, url: WebPath(tripId.Value, fileName));
+            })
             .ToList();
 
         ViewBag.Files = files;
@@ -62,34 +78,39 @@ public class MediaController : Controller
         var dir = GetTripFolder(tripId);
         Directory.CreateDirectory(dir);
 
+        var staticDir = Path.Combine(_env.WebRootPath, "uploads", tripId.ToString());
+        Directory.CreateDirectory(staticDir);
+
         var saved = new List<string>();
 
         foreach (var file in files)
         {
             if (file.Length <= 0) continue;
 
-            // уникальное имя: yyyyMMdd_HHmmss_guid.ext
             var ext = Path.GetExtension(file.FileName);
             var name = $"{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}{ext}";
-            var full = Path.Combine(dir, name);
 
-            await using var stream = System.IO.File.Create(full);
-            await file.CopyToAsync(stream);
+            var diskPath = Path.Combine(dir, name);       // сохраняем на /data/
+            var staticPath = Path.Combine(staticDir, name); // копия в wwwroot
+
+            await using (var stream = System.IO.File.Create(diskPath))
+                await file.CopyToAsync(stream);
+
+            // Копия в статическую папку
+            System.IO.File.Copy(diskPath, staticPath);
 
             saved.Add(WebPath(tripId, name));
         }
 
-        // Подсказываем готовые HTML-сниппеты
-        TempData["Success"] = $"Загружено: {saved.Count}. Примеры HTML:\n" +
-                              string.Join("\n", saved.Select(u => $"<img src=\"{u}\" alt=\"\">"));
-
+        TempData["Success"] = $"{saved.Count} файлов загружено.";
         return RedirectToAction(nameof(Index), new { tripId });
     }
 
-    // /Admin/Media/All — галерея всех фото
+    // /Admin/Media/All
     public IActionResult All()
     {
-        var root = Path.Combine(_env.WebRootPath, "uploads");
+        var root = UploadRoot;
+
         if (!Directory.Exists(root))
         {
             ViewBag.Items = Array.Empty<(int tripId, string file, string url)>();
@@ -100,11 +121,16 @@ public class MediaController : Controller
             .SelectMany(dir =>
             {
                 var tripIdStr = Path.GetFileName(dir);
-                if (!int.TryParse(tripIdStr, out var tripId)) return Enumerable.Empty<(int, string, string)>();
+                if (!int.TryParse(tripIdStr, out var tripId))
+                    return Enumerable.Empty<(int, string, string)>();
 
                 return Directory.EnumerateFiles(dir)
                     .OrderByDescending(p => System.IO.File.GetCreationTimeUtc(p))
-                    .Select(p => (tripId, file: Path.GetFileName(p), url: WebPath(tripId, Path.GetFileName(p))));
+                    .Select(p =>
+                    {
+                        var fileName = Path.GetFileName(p);
+                        return (tripId, fileName, WebPath(tripId, fileName));
+                    });
             })
             .ToList();
 
@@ -112,14 +138,18 @@ public class MediaController : Controller
         return View();
     }
 
-    // Опционально: удалить файл
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Delete(int tripId, string file)
     {
-        var full = Path.Combine(GetTripFolder(tripId), file);
-        if (System.IO.File.Exists(full))
-            System.IO.File.Delete(full);
+        var diskPath = Path.Combine(GetTripFolder(tripId), file);
+        var staticPath = Path.Combine(_env.WebRootPath, "uploads", tripId.ToString(), file);
+
+        if (System.IO.File.Exists(diskPath))
+            System.IO.File.Delete(diskPath);
+
+        if (System.IO.File.Exists(staticPath))
+            System.IO.File.Delete(staticPath);
 
         TempData["Success"] = "Файл удалён.";
         return RedirectToAction(nameof(Index), new { tripId });
